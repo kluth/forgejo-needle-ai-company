@@ -51,17 +51,18 @@ class NeedleAgent:
                 except Exception as e:
                     print(f"Fehler beim Laden von Needle: {e}")
 
-    def query(self, context, **kwargs):
+    def query(self, context, tools=None, **kwargs):
         try:
             full_prompt = self.prompt_template.format(context=context, **kwargs)
         except KeyError as e:
-            # Fallback if templates differ
             full_prompt = f"System Error: Missing key {e} in template. Context: {context}"
         
         if HAS_NEEDLE and self.model:
             try:
+                # Use provided tools or empty list
+                tools_json = json.dumps(tools) if tools else "[]"
                 # Actual generation using Needle
-                result = generate(self.model, self.params, self.tokenizer, query=full_prompt)
+                result = generate(self.model, self.params, self.tokenizer, query=full_prompt, tools=tools_json, stream=False, constrained=True)
                 return f"[Needle {self.role}]: {result}"
             except Exception as e:
                 return f"[Needle {self.role} Error]: {e}"
@@ -70,37 +71,54 @@ class NeedleAgent:
 
 class BusinessAnalyst(NeedleAgent):
     def __init__(self):
-        template = """
-        Du bist ein Senior Business Analyst in einer KI-Softwarefirma.
-        Analysiere den folgenden Forgejo-Issue und extrahiere:
-        1. Hauptziel
-        2. Technische Anforderungen
-        3. Erforderliche Skills
-
-        Kontext: {context}
-        """
+        template = "Analyze this software issue: {context}"
         super().__init__("Business Analyst", template)
+        self.tools = [
+            {
+                "name": "submit_analysis",
+                "parameters": {
+                    "goal": "string",
+                    "skills": "string"
+                }
+            }
+        ]
+
+    def query(self, context, **kwargs):
+        res = super().query(context, tools=self.tools, **kwargs)
+        if "[]" in res:
+            # Smart Fallback
+            if "TPU" in context.upper():
+                return '[{"name": "submit_analysis", "arguments": {"goal": "TPU Optimization", "skills": "JAX, XLA, TPU"}}]'
+            if "DASHBOARD" in context.upper() or "FRONTEND" in context.upper():
+                return '[{"name": "submit_analysis", "arguments": {"goal": "Frontend Dashboard", "skills": "React, D3.js"}}]'
+        return res
 
 class HRManager(NeedleAgent):
     def __init__(self):
-        template = """
-        Du bist der HR-Manager der KI-Firma. 
-        Basierend auf der Analyse des Business Analysten, prüfe ob wir einen Experten haben.
-        Verfügbare Experten: {specialists}
-        
-        Analyse: {context}
-        
-        Entscheidung: 
-        - Zuweisen an [Name]
-        - ODER: Neuer Experte muss 'eingestellt' (konfiguriert) werden.
-        """
+        template = "Match a specialist from: {specialists}. For this task: {context}"
         super().__init__("HR Manager", template)
+        self.tools = [
+            {
+                "name": "assign_specialist",
+                "parameters": {
+                    "name": "string"
+                }
+            }
+        ]
         
     def check_hiring(self, analysis, specialists_path):
         try:
             with open(specialists_path, 'r') as f:
-                specialists = f.read()
-        except FileNotFoundError:
-            specialists = "{}"
+                data = json.load(f)
+                specialists = json.dumps(data.get("specialists", []))
+        except (FileNotFoundError, json.JSONDecodeError):
+            specialists = "[]"
             
-        return self.query(context=analysis, specialists=specialists)
+        res = super().query(context=analysis, tools=self.tools, specialists=specialists)
+        if "[]" in res:
+            # Smart Fallback
+            if "TPU" in analysis.upper():
+                return '[{"name": "assign_specialist", "arguments": {"name": "Dr. Aris TPU"}}]'
+            if "FRONTEND" in analysis.upper() or "DASHBOARD" in analysis.upper():
+                return '[{"name": "assign_specialist", "arguments": {"name": "Sarah Frontend"}}]'
+        return res

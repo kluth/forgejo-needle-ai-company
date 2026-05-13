@@ -31,21 +31,51 @@ class NeedleOrchestrator:
         return issue['comments'] > 0
 
     def process_task(self, issue):
+        from agent_engine import BusinessAnalyst, HRManager
+        import json
+        
         print(f"Verarbeite neuen Task: {issue['title']} (#{issue['number']})")
         
-        # Hier würde der Aufruf an Needle erfolgen
         # 1. Business Analyst Agent -> Analyse
-        # 2. HR Manager Agent -> Zuweisung
+        analyst = BusinessAnalyst()
+        print("Analyst arbeitet...")
+        analysis_raw = analyst.query(issue['body'] or issue['title'])
         
-        # Mock-Antwort für Phase 1
+        # Parse analysis
+        analysis_text = analysis_raw
+        try:
+            json_part = analysis_raw.split("]: ", 1)[1] if "]: " in analysis_raw else analysis_raw
+            data = json.loads(json_part)
+            if isinstance(data, list) and len(data) > 0:
+                args = data[0].get("arguments", {})
+                analysis_text = f"**Ziel:** {args.get('goal', 'N/A')}\n**Skills:** {args.get('skills', 'N/A')}"
+        except:
+            pass
+            
+        # 2. HR Manager Agent -> Zuweisung
+        hr = HRManager()
+        print("HR Manager prüft Experten...")
+        assignment_raw = hr.check_hiring(analysis_raw, "config/specialists.json")
+        
+        # Parse assignment
+        assignment_text = assignment_raw
+        try:
+            json_part = assignment_raw.split("]: ", 1)[1] if "]: " in assignment_raw else assignment_raw
+            data = json.loads(json_part)
+            if isinstance(data, list) and len(data) > 0:
+                args = data[0].get("arguments", {})
+                assignment_text = f"**Zuweisung:** {args.get('name', 'N/A')}"
+        except:
+            pass
+        
         response = (
-            "### Analyse durch KI-Business-Analyst\n"
-            "Task erkannt. Ich analysiere die Anforderungen...\n\n"
-            "### HR-Check\n"
-            "Suche passenden Spezialisten..."
+            f"### Analyse durch KI-Business-Analyst\n"
+            f"{analysis_text}\n\n"
+            f"### HR-Check\n"
+            f"{assignment_text}"
         )
         self.client.post_comment(self.inbox_repo, issue['number'], response)
-        print("Mock-Antwort gesendet.")
+        print("Antwort gesendet.")
 
 if __name__ == "__main__":
     orchestrator = NeedleOrchestrator()

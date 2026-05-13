@@ -1,12 +1,29 @@
 {
-  "business_analyst": {
-    "name": "Alex",
-    "role": "Analyst",
-    "description": "Analysiert Anforderungen und erstellt technische Spezifikationen."
+  "agents": {
+    "business_analyst": {
+      "name": "Alex",
+      "role": "Analyst"
+    },
+    "hr_manager": {
+      "name": "Jordan",
+      "role": "HR"
+    }
   },
-  "hr_manager": {
-    "name": "Jordan",
-    "role": "HR",
-    "description": "Verwaltet die Agenten-Datenbank und weist Aufgaben zu."
-  }
+  "specialists": [
+    {
+      "name": "Dr. Aris TPU",
+      "skills": ["TPU Optimization", "JAX", "XLA"],
+      "bio": "Experte für Hardware-beschleunigtes Training."
+    },
+    {
+      "name": "Sarah Frontend",
+      "skills": ["React", "D3.js", "Dashboards"],
+      "bio": "Spezialisiert auf Datenvisualisierung."
+    },
+    {
+      "name": "Mike DevOps",
+      "skills": ["Docker", "Kubernetes", "Forgejo CI"],
+      "bio": "Automatisierungsexperte."
+    }
+  ]
 }

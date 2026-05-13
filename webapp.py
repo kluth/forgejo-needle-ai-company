@@ -62,13 +62,31 @@ class OnlineOrchestrator(threading.Thread):
         
         # 1. Analyst
         add_log("Alex (Analyst) analysiert...")
-        analysis = self.analyst.query(issue['body'])
+        analysis_raw = self.analyst.query(issue['body'] or issue['title'])
+        analysis_text = analysis_raw
+        try:
+            json_part = analysis_raw.split("]: ", 1)[1] if "]: " in analysis_raw else analysis_raw
+            data = json.loads(json_part)
+            if isinstance(data, list) and len(data) > 0:
+                args = data[0].get("arguments", {})
+                analysis_text = f"**Ziel:** {args.get('goal', 'N/A')}\n**Skills:** {args.get('skills', 'N/A')}"
+        except:
+            pass
         
         # 2. HR
         add_log("Jordan (HR) prüft Experten...")
-        hr_decision = self.hr.check_hiring(analysis, "config/specialists.json")
+        hr_raw = self.hr.check_hiring(analysis_raw, "config/specialists.json")
+        hr_text = hr_raw
+        try:
+            json_part = hr_raw.split("]: ", 1)[1] if "]: " in hr_raw else hr_raw
+            data = json.loads(json_part)
+            if isinstance(data, list) and len(data) > 0:
+                args = data[0].get("arguments", {})
+                hr_text = f"**Zuweisung:** {args.get('name', 'N/A')}"
+        except:
+            pass
         
-        response = f"### Alex (Analyst):\n{analysis}\n\n### Jordan (HR):\n{hr_decision}"
+        response = f"### Alex (Analyst):\n{analysis_text}\n\n### Jordan (HR):\n{hr_text}"
         self.client.post_comment(self.inbox_repo, issue['number'], response)
         add_log(f"Task #{issue['number']} verarbeitet.")
 
