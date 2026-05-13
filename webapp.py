@@ -53,8 +53,9 @@ class OnlineOrchestrator(threading.Thread):
                 
                 # Check Inbox
                 issues = self.client.get_issues(self.inbox_repo)
-                for issue in issues:
-                    if issue['state'] == 'open' and self.needs_response(issue):
+                open_issues = [i for i in issues if i['state'] == 'open']
+                for issue in open_issues:
+                    if self.needs_response(issue):
                         self.process_task(issue)
                 
                 time.sleep(10)
@@ -69,7 +70,8 @@ class OnlineOrchestrator(threading.Thread):
         if not comments:
             return True
         last_comment = comments[-1]
-        return last_comment['user']['id'] != self.ai_user_id
+        body = last_comment['body'].strip()
+        return not body.startswith("###")
 
     def process_task(self, issue):
         add_log(f"Neu: {issue['title']} (#{issue['number']})")

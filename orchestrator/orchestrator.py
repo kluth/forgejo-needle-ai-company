@@ -22,19 +22,24 @@ class NeedleOrchestrator:
         while True:
             try:
                 issues = self.client.get_issues(self.inbox_repo)
-                for issue in issues:
-                    if issue['state'] == 'open' and self.needs_response(issue):
+                open_issues = [i for i in issues if i['state'] == 'open']
+                if open_issues:
+                    print(f"Scanne {len(open_issues)} offene Issues...")
+                
+                for issue in open_issues:
+                    if self.needs_response(issue):
                         self.process_task(issue)
                 
-                time.sleep(30) # Poll alle 30 Sekunden
+                time.sleep(10) # Poll alle 10 Sekunden für schnelles Feedback
             except Exception as e:
                 print(f"Fehler beim Polling: {e}")
-                time.sleep(30)
+                time.sleep(10)
 
     def needs_response(self, issue):
         # AI muss antworten wenn:
         # 1. Keine Kommentare da sind
-        # 2. Der letzte Kommentar NICHT von der KI selbst ist
+        # 2. Der letzte Kommentar NICHT von der KI ist
+        # Wir erkennen die KI an dem Header "###"
         if issue['comments'] == 0:
             return True
             
@@ -43,7 +48,11 @@ class NeedleOrchestrator:
             return True
             
         last_comment = comments[-1]
-        return last_comment['user']['id'] != self.ai_user_id
+        body = last_comment['body'].strip()
+        
+        # Wenn der letzte Kommentar nicht mit "###" beginnt, ist es ein Mensch
+        # (Oder wenn es ein Mensch ist, der zufällig ### nutzt, aber das ist unwahrscheinlich)
+        return not body.startswith("###")
 
     def process_task(self, issue):
         from agent_engine import BusinessAnalyst, HRManager
