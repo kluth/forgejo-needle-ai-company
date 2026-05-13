@@ -6,8 +6,8 @@ services:
     restart: always
     environment:
       - FORGEJO_URL=https://forgejo.kluth.cloud
-      - FORGEJO_TOKEN=${FORGEJO_TOKEN}
-      - FORGEJO_ORG=ai-company
+      - FORGEJO_TOKEN=d5d4a1b27b6c3b115b1e3e40e74134c06d2745d7
+      - FORGEJO_ORG=project-freedom
       - NEEDLE_CHECKPOINT_PATH=/app/data/needle.pkl
       - PORT=5000
     volumes:
