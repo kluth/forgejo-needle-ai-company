@@ -15,6 +15,7 @@ class ForgejoClient:
 
     def get_issues(self, repo):
         url = f"{self.base_url}/api/v1/repos/{repo}/issues"
+        print(f"API Call: {url}")
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json()

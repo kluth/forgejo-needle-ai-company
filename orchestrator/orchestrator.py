@@ -21,7 +21,10 @@ class NeedleOrchestrator:
         print(f"Orchestrator gestartet. Überwache {self.inbox_repo}...")
         while True:
             try:
+                # Debug: Zeige was wir tun
+                print(f"Polling {self.inbox_repo}...")
                 issues = self.client.get_issues(self.inbox_repo)
+                print(f"Erhalten: {len(issues)} Issues insgesamt.")
                 open_issues = [i for i in issues if i['state'] == 'open']
                 if open_issues:
                     print(f"Scanne {len(open_issues)} offene Issues...")
