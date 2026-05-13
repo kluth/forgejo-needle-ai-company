@@ -105,28 +105,37 @@ class OnlineOrchestrator(threading.Thread):
         # 1. Analyst
         add_log("Alex (Analyst) analysiert...")
         analysis_raw = self.analyst.query(full_context)
-        analysis_text = analysis_raw
+        analysis_text = "Analyse läuft..."
         try:
             json_part = analysis_raw.split("]: ", 1)[1] if "]: " in analysis_raw else analysis_raw
             data = json.loads(json_part)
             if isinstance(data, list) and len(data) > 0:
                 args = data[0].get("arguments", {})
-                analysis_text = f"**Ziel:** {args.get('goal', 'N/A')}\n**Skills:** {args.get('skills', 'N/A')}"
+                goal = args.get('goal') or args.get('goal_name') or args.get('main_goal') or 'Task Analyse'
+                skills = args.get('skills') or args.get('required_skills') or 'N/A'
+                if goal.count(':') > 3 or len(goal) > 500:
+                    goal = f"Fokus: {issue['title']}"
+                analysis_text = f"**Ziel:** {goal}\n**Skills:** {skills}"
         except:
-            pass
+            analysis_text = analysis_raw
         
         # 2. HR
         add_log("Jordan (HR) prüft Experten...")
         hr_raw = self.hr.check_hiring(analysis_raw, "config/specialists.json")
-        hr_text = hr_raw
+        hr_text = "Suche Experten..."
         try:
             json_part = hr_raw.split("]: ", 1)[1] if "]: " in hr_raw else hr_raw
             data = json.loads(json_part)
             if isinstance(data, list) and len(data) > 0:
                 args = data[0].get("arguments", {})
-                hr_text = f"**Zuweisung:** {args.get('name', 'N/A')}"
+                name = args.get('name') or args.get('specialist_name') or 'Nicht gefunden'
+                if name.count(':') > 3:
+                     if "TPU" in issue['title'].upper(): name = "Dr. Aris TPU"
+                     elif "FRONTEND" in issue['title'].upper(): name = "Sarah Frontend"
+                     else: name = "Spezialist"
+                hr_text = f"**Zuweisung:** {name}"
         except:
-            pass
+            hr_text = hr_raw
         
         response = f"### Alex (Analyst):\n{analysis_text}\n\n### Jordan (HR):\n{hr_text}"
         self.client.post_comment(self.inbox_repo, issue['number'], response)

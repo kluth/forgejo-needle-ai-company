@@ -66,7 +66,7 @@ class NeedleOrchestrator:
         
         print(f"Verarbeite neuen Task: {issue['title']} (#{issue['number']})")
         
-        # Sammle gesamten Kontext (Issue Body + Kommentare)
+        # Sammle gesamten Kontext
         comments = self.client.get_comments(self.inbox_repo, issue['number'])
         full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory:\n"
         for c in comments:
@@ -77,32 +77,47 @@ class NeedleOrchestrator:
         print("Analyst arbeitet...")
         analysis_raw = analyst.query(full_context)
         
-        # Parse analysis
-        analysis_text = analysis_raw
+        # Parse analysis with robustness
+        analysis_text = "Analyse läuft..."
         try:
             json_part = analysis_raw.split("]: ", 1)[1] if "]: " in analysis_raw else analysis_raw
             data = json.loads(json_part)
             if isinstance(data, list) and len(data) > 0:
                 args = data[0].get("arguments", {})
-                analysis_text = f"**Ziel:** {args.get('goal', 'N/A')}\n**Skills:** {args.get('skills', 'N/A')}"
+                goal = args.get('goal') or args.get('goal_name') or args.get('main_goal') or 'Task Analyse'
+                skills = args.get('skills') or args.get('required_skills') or 'N/A'
+                
+                # Repetitionsprüfung (Gibberish Erkennung)
+                if goal.count(':') > 3 or len(goal) > 500:
+                    goal = f"Extraktion fehlgeschlagen, Thema: {issue['title']}"
+                    
+                analysis_text = f"**Ziel:** {goal}\n**Skills:** {skills}"
         except:
-            pass
+            analysis_text = analysis_raw
             
         # 2. HR Manager Agent -> Zuweisung
         hr = HRManager()
         print("HR Manager prüft Experten...")
         assignment_raw = hr.check_hiring(analysis_raw, "config/specialists.json")
         
-        # Parse assignment
-        assignment_text = assignment_raw
+        # Parse assignment with robustness
+        assignment_text = "Suche Experten..."
         try:
             json_part = assignment_raw.split("]: ", 1)[1] if "]: " in assignment_raw else assignment_raw
             data = json.loads(json_part)
             if isinstance(data, list) and len(data) > 0:
                 args = data[0].get("arguments", {})
-                assignment_text = f"**Zuweisung:** {args.get('name', 'N/A')}"
+                name = args.get('name') or args.get('specialist_name') or 'Nicht gefunden'
+                
+                if name.count(':') > 3:
+                     # Heuristik Fallback wenn KI halluziniert
+                     if "TPU" in issue['title'].upper(): name = "Dr. Aris TPU"
+                     elif "FRONTEND" in issue['title'].upper(): name = "Sarah Frontend"
+                     else: name = "Experte benötigt"
+
+                assignment_text = f"**Zuweisung:** {name}"
         except:
-            pass
+            assignment_text = assignment_raw
         
         response = (
             f"### Analyse durch KI-Business-Analyst\n"
