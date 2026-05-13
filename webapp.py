@@ -96,11 +96,14 @@ class OnlineOrchestrator(threading.Thread):
     def process_task(self, issue):
         add_log(f"Neu: {issue['title']} (#{issue['number']})")
         
-        # Sammle gesamten Kontext
+        # Sammle und bereinige Kontext
         comments = self.client.get_comments(self.inbox_repo, issue['number'])
-        full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory:\n"
+        full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory (cleaned):\n"
         for c in comments:
-            full_context += f"Author: {c['user']['login']}\nComment: {c['body']}\n---\n"
+            c_body = c['body']
+            if "MOCK" in c_body or c_body.count(':') > 10:
+                continue
+            full_context += f"Author: {c['user']['login']}\nComment: {c_body[:200]}\n---\n"
 
         # 1. Analyst
         add_log("Alex (Analyst) analysiert...")

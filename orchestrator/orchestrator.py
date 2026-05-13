@@ -67,11 +67,15 @@ class NeedleOrchestrator:
         
         print(f"Verarbeite neuen Task: {issue['title']} (#{issue['number']})")
         
-        # Sammle gesamten Kontext
+        # Sammle und bereinige Kontext
         comments = self.client.get_comments(self.inbox_repo, issue['number'])
-        full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory:\n"
+        full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory (cleaned):\n"
         for c in comments:
-            full_context += f"Author: {c['user']['login']}\nComment: {c['body']}\n---\n"
+            c_body = c['body']
+            # Filter: Ignoriere MOCKs und zu lange Repetitionen in der History
+            if "MOCK" in c_body or c_body.count(':') > 10:
+                continue
+            full_context += f"Author: {c['user']['login']}\nComment: {c_body[:200]}\n---\n"
 
         # 1. Business Analyst Agent -> Analyse
         analyst = BusinessAnalyst()
