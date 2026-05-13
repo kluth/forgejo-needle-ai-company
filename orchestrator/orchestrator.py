@@ -10,6 +10,12 @@ class NeedleOrchestrator:
         self.client = ForgejoClient()
         self.org = os.getenv("FORGEJO_ORG")
         self.inbox_repo = f"{self.org}/inbox" # Default inbox
+        try:
+            self.user_info = self.client.get_current_user()
+            self.ai_user_id = self.user_info['id']
+            print(f"Eingeloggt als: {self.user_info['login']} (ID: {self.ai_user_id})")
+        except:
+            self.ai_user_id = None
         
     def run(self):
         print(f"Orchestrator gestartet. Überwache {self.inbox_repo}...")
@@ -17,18 +23,27 @@ class NeedleOrchestrator:
             try:
                 issues = self.client.get_issues(self.inbox_repo)
                 for issue in issues:
-                    if issue['state'] == 'open' and not self.is_processed(issue):
+                    if issue['state'] == 'open' and self.needs_response(issue):
                         self.process_task(issue)
                 
-                time.sleep(60) # Poll alle 60 Sekunden
+                time.sleep(30) # Poll alle 30 Sekunden
             except Exception as e:
                 print(f"Fehler beim Polling: {e}")
                 time.sleep(30)
 
-    def is_processed(self, issue):
-        # Einfache Prüfung: Hat bereits jemand (die KI) kommentiert?
-        # In einer echten App würde man Labels nutzen (z.B. 'analyzed')
-        return issue['comments'] > 0
+    def needs_response(self, issue):
+        # AI muss antworten wenn:
+        # 1. Keine Kommentare da sind
+        # 2. Der letzte Kommentar NICHT von der KI selbst ist
+        if issue['comments'] == 0:
+            return True
+            
+        comments = self.client.get_comments(self.inbox_repo, issue['number'])
+        if not comments:
+            return True
+            
+        last_comment = comments[-1]
+        return last_comment['user']['id'] != self.ai_user_id
 
     def process_task(self, issue):
         from agent_engine import BusinessAnalyst, HRManager
@@ -36,10 +51,16 @@ class NeedleOrchestrator:
         
         print(f"Verarbeite neuen Task: {issue['title']} (#{issue['number']})")
         
+        # Sammle gesamten Kontext (Issue Body + Kommentare)
+        comments = self.client.get_comments(self.inbox_repo, issue['number'])
+        full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory:\n"
+        for c in comments:
+            full_context += f"Author: {c['user']['login']}\nComment: {c['body']}\n---\n"
+
         # 1. Business Analyst Agent -> Analyse
         analyst = BusinessAnalyst()
         print("Analyst arbeitet...")
-        analysis_raw = analyst.query(issue['body'] or issue['title'])
+        analysis_raw = analyst.query(full_context)
         
         # Parse analysis
         analysis_text = analysis_raw

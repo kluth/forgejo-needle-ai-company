@@ -37,6 +37,11 @@ class OnlineOrchestrator(threading.Thread):
         self.daemon = True
         self.analyst = BusinessAnalyst()
         self.hr = HRManager()
+        try:
+            self.user_info = self.client.get_current_user()
+            self.ai_user_id = self.user_info['id']
+        except:
+            self.ai_user_id = None
 
     def run(self):
         add_log(f"Orchestrator gestartet. Überwache {self.inbox_repo}...")
@@ -49,7 +54,7 @@ class OnlineOrchestrator(threading.Thread):
                 # Check Inbox
                 issues = self.client.get_issues(self.inbox_repo)
                 for issue in issues:
-                    if issue['state'] == 'open' and issue['comments'] == 0:
+                    if issue['state'] == 'open' and self.needs_response(issue):
                         self.process_task(issue)
                 
                 time.sleep(10)
@@ -57,12 +62,27 @@ class OnlineOrchestrator(threading.Thread):
                 add_log(f"Fehler: {e}")
                 time.sleep(10)
 
+    def needs_response(self, issue):
+        if issue['comments'] == 0:
+            return True
+        comments = self.client.get_comments(self.inbox_repo, issue['number'])
+        if not comments:
+            return True
+        last_comment = comments[-1]
+        return last_comment['user']['id'] != self.ai_user_id
+
     def process_task(self, issue):
         add_log(f"Neu: {issue['title']} (#{issue['number']})")
         
+        # Sammle gesamten Kontext
+        comments = self.client.get_comments(self.inbox_repo, issue['number'])
+        full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory:\n"
+        for c in comments:
+            full_context += f"Author: {c['user']['login']}\nComment: {c['body']}\n---\n"
+
         # 1. Analyst
         add_log("Alex (Analyst) analysiert...")
-        analysis_raw = self.analyst.query(issue['body'] or issue['title'])
+        analysis_raw = self.analyst.query(full_context)
         analysis_text = analysis_raw
         try:
             json_part = analysis_raw.split("]: ", 1)[1] if "]: " in analysis_raw else analysis_raw

@@ -33,6 +33,18 @@ class ForgejoClient:
         response.raise_for_status()
         return response.json()
 
+    def get_comments(self, repo, issue_index):
+        url = f"{self.base_url}/api/v1/repos/{repo}/issues/{issue_index}/comments"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
+    def get_current_user(self):
+        url = f"{self.base_url}/api/v1/user"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
     def get_org_repos(self, org):
         url = f"{self.base_url}/api/v1/orgs/{org}/repos"
         response = requests.get(url, headers=self.headers)
