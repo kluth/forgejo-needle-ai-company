@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Needle AI Company - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .card { background-color: #1e293b; border: none; color: #e2e8f0; }
+        .log-container { background-color: #000; color: #00ff00; font-family: 'Courier New', Courier, monospace; height: 300px; overflow-y: scroll; padding: 10px; border-radius: 5px; }
+        .badge-agent { background-color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">🌵 Needle AI Forgejo Company</span>
+            <span class="badge bg-success" id="status-badge">Online</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Organisation Status</h5>
+                        <p class="card-text">Org: <strong id="org-name">Lade...</strong></p>
+                        <p class="card-text">Repos: <span id="repo-count">0</span></p>
+                        <hr>
+                        <h6>Aktive Agenten</h6>
+                        <div id="agent-list">
+                            <!-- Agenten werden hier geladen -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Live Logs</h5>
+                        <div id="logs" class="log-container">
+                            Waiting for logs...
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Steuerung</h5>
+                        <button class="btn btn-primary" onclick="triggerTask()">Manuellen Task auslösen</button>
+                        <button class="btn btn-outline-danger" onclick="clearLogs()">Logs leeren</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateDashboard() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('org-name').innerText = data.org;
+                    document.getElementById('repo-count').innerText = data.repos;
+                    const agentList = document.getElementById('agent-list');
+                    agentList.innerHTML = '';
+                    data.agents.forEach(agent => {
+                        const span = document.createElement('span');
+                        span.className = 'badge badge-agent me-1';
+                        span.innerText = agent;
+                        agentList.appendChild(span);
+                    });
+                });
+
+            fetch('/api/logs')
+                .then(res => res.json())
+                .then(data => {
+                    const logContainer = document.getElementById('logs');
+                    logContainer.innerText = data.logs.join('\n');
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                });
+        }
+
+        function triggerTask() {
+            const title = prompt("Task Titel:");
+            if (title) {
+                fetch('/api/trigger', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title: title})
+                });
+            }
+        }
+
+        function clearLogs() {
+            fetch('/api/logs/clear', {method: 'POST'});
+        }
+
+        setInterval(updateDashboard, 2000);
+        updateDashboard();
+    </script>
+</body>
+</html>

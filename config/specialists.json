@@ -1,0 +1,12 @@
+{
+  "business_analyst": {
+    "name": "Alex",
+    "role": "Analyst",
+    "description": "Analysiert Anforderungen und erstellt technische Spezifikationen."
+  },
+  "hr_manager": {
+    "name": "Jordan",
+    "role": "HR",
+    "description": "Verwaltet die Agenten-Datenbank und weist Aufgaben zu."
+  }
+}
