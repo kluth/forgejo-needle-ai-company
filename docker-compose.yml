@@ -1,25 +1,63 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=forgejo
+      - POSTGRES_PASSWORD=forgejo_pass
+      - POSTGRES_DB=forgejo
+    networks:
+      - ai-network
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  forgejo:
+    image: code.forgejo.org/forgejo/forgejo:latest
+    restart: always
+    environment:
+      - FORGEJO__database__DB_TYPE=postgres
+      - FORGEJO__database__HOST=db:5432
+      - FORGEJO__database__NAME=forgejo
+      - FORGEJO__database__USER=forgejo
+      - FORGEJO__database__PASSWD=forgejo_pass
+    networks:
+      - ai-network
+    volumes:
+      - ./data/forgejo:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.forgejo.rule=Host(`forgejo.deine-domain.de`)"
+      - "traefik.http.routers.forgejo.entrypoints=websecure"
+      - "traefik.http.routers.forgejo.tls.certresolver=myresolver"
+      - "traefik.http.services.forgejo.loadbalancer.server.port=3000"
+
   orchestrator:
     build: .
     restart: always
     environment:
-      - FORGEJO_URL=https://forgejo.kluth.cloud
-      - FORGEJO_TOKEN=d5d4a1b27b6c3b115b1e3e40e74134c06d2745d7
-      - FORGEJO_ORG=project-freedom
+      - FORGEJO_URL=http://forgejo:3000
+      - FORGEJO_TOKEN=TOKEN_WIRD_SPÄTER_EINGETRAGEN
+      - FORGEJO_ORG=ai-company
       - NEEDLE_CHECKPOINT_PATH=/app/data/needle.pkl
       - PORT=5000
+    networks:
+      - ai-network
     volumes:
       - ./data/orchestrator:/app/data
       - ./config:/app/config
+    depends_on:
+      - forgejo
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ai-company.rule=Host(`ai-company.kluth.cloud`)"
-      - "traefik.http.routers.ai-company.entrypoints=websecure"
-      - "traefik.http.routers.ai-company.tls.certresolver=letsencrypt"
-      - "traefik.http.services.ai-company.loadbalancer.server.port=5000"
+      - "traefik.http.routers.orchestrator.rule=Host(`dashboard.deine-domain.de`)"
+      - "traefik.http.routers.orchestrator.entrypoints=websecure"
+      - "traefik.http.routers.orchestrator.tls.certresolver=myresolver"
+      - "traefik.http.services.orchestrator.loadbalancer.server.port=5000"
 
 networks:
-  default:
+  ai-network:
     driver: bridge
