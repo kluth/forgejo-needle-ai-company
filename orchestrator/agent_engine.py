@@ -11,6 +11,24 @@ try:
 except ImportError:
     HAS_NEEDLE = False
 
+def download_weights():
+    try:
+        from huggingface_hub import hf_hub_download
+        local_dir = "data"
+        os.makedirs(local_dir, exist_ok=True)
+        print("Lade Needle-Weights von HuggingFace herunter...")
+        path = hf_hub_download(
+            repo_id="Cactus-Compute/needle",
+            filename="needle.pkl",
+            repo_type="model",
+            local_dir=local_dir
+        )
+        print(f"Weights heruntergeladen: {path}")
+        return path
+    except Exception as e:
+        print(f"Download-Fehler: {e}")
+        return None
+
 class NeedleAgent:
     def __init__(self, role, prompt_template):
         self.role = role
@@ -21,11 +39,17 @@ class NeedleAgent:
         self.tokenizer = None
         
         if HAS_NEEDLE:
-            checkpoint = os.getenv("NEEDLE_CHECKPOINT_PATH", "checkpoints/needle.pkl")
+            checkpoint = os.getenv("NEEDLE_CHECKPOINT_PATH", "data/needle.pkl")
+            if not os.path.exists(checkpoint):
+                checkpoint = download_weights() or checkpoint
+            
             if os.path.exists(checkpoint):
-                self.params, self.config = load_checkpoint(checkpoint)
-                self.model = SimpleAttentionNetwork(self.config)
-                self.tokenizer = get_tokenizer()
+                try:
+                    self.params, self.config = load_checkpoint(checkpoint)
+                    self.model = SimpleAttentionNetwork(self.config)
+                    self.tokenizer = get_tokenizer()
+                except Exception as e:
+                    print(f"Fehler beim Laden von Needle: {e}")
 
     def query(self, context, **kwargs):
         try:
@@ -35,7 +59,12 @@ class NeedleAgent:
             full_prompt = f"System Error: Missing key {e} in template. Context: {context}"
         
         if HAS_NEEDLE and self.model:
-            return f"[Needle {self.role}]: (Simulierte Antwort) Die Analyse ist abgeschlossen."
+            try:
+                # Actual generation using Needle
+                result = generate(self.model, self.params, self.tokenizer, query=full_prompt)
+                return f"[Needle {self.role}]: {result}"
+            except Exception as e:
+                return f"[Needle {self.role} Error]: {e}"
         else:
             return f"[MOCK {self.role}]: {context[:100]}..."
 
