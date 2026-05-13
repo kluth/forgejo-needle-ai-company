@@ -14,6 +14,7 @@ app = Flask(__name__)
 # Globaler State für das Dashboard
 logs = []
 status = {
+    "version": "1.0.1-fixed",
     "org": os.getenv("FORGEJO_ORG", "Not Configured"),
     "repos": 0,
     "agents": ["Business Analyst", "HR Manager"]

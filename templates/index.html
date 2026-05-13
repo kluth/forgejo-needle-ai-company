@@ -15,7 +15,7 @@
 <body>
     <nav class="navbar navbar-dark bg-dark mb-4">
         <div class="container">
-            <span class="navbar-brand mb-0 h1">🌵 Needle AI Forgejo Company</span>
+            <span class="navbar-brand mb-0 h1">🌵 Needle AI Forgejo Company <small class="text-muted" id="app-version" style="font-size: 0.5em;"></small></span>
             <span class="badge bg-success" id="status-badge">Online</span>
         </div>
     </nav>
@@ -64,6 +64,7 @@
                 .then(data => {
                     document.getElementById('org-name').innerText = data.org;
                     document.getElementById('repo-count').innerText = data.repos;
+                    document.getElementById('app-version').innerText = data.version || '';
                     const agentList = document.getElementById('agent-list');
                     agentList.innerHTML = '';
                     data.agents.forEach(agent => {
