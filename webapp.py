@@ -89,7 +89,7 @@ class OnlineOrchestrator(threading.Thread):
             return True
         last_comment = comments[-1]
         body = last_comment['body'].strip()
-        if "MOCK" in body:
+        if "MOCK" in body or body.count(':') > 10 or len(body) > 1000:
             return True
         return not body.startswith("###")
 

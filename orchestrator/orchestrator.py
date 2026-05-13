@@ -42,7 +42,8 @@ class NeedleOrchestrator:
         # AI muss antworten wenn:
         # 1. Keine Kommentare da sind
         # 2. Der letzte Kommentar NICHT von der KI ist
-        # 3. Der letzte Kommentar ein "MOCK" ist (muss ersetzt werden)
+        # 3. Der letzte Kommentar ein "MOCK" ist
+        # 4. Der letzte Kommentar unsinnig ist (Halluzination)
         if issue['comments'] == 0:
             return True
             
@@ -53,8 +54,8 @@ class NeedleOrchestrator:
         last_comment = comments[-1]
         body = last_comment['body'].strip()
         
-        # Wenn MOCK drin steht, wollen wir es verbessern
-        if "MOCK" in body:
+        # Qualitätsprüfung
+        if "MOCK" in body or body.count(':') > 10 or len(body) > 1000:
             return True
 
         # Wenn der letzte Kommentar nicht mit "###" beginnt, ist es ein Mensch
