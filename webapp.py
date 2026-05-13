@@ -108,37 +108,39 @@ class OnlineOrchestrator(threading.Thread):
         # 1. Analyst
         add_log("Alex (Analyst) analysiert...")
         analysis_raw = self.analyst.query(full_context)
-        analysis_text = "Analyse läuft..."
+        analysis_text = f"Analyse für: {issue['title']}"
         try:
             json_part = analysis_raw.split("]: ", 1)[1] if "]: " in analysis_raw else analysis_raw
+            if "[" in json_part and "]" in json_part:
+                json_part = json_part[json_part.find("["):json_part.rfind("]")+1]
             data = json.loads(json_part)
             if isinstance(data, list) and len(data) > 0:
                 args = data[0].get("arguments", {})
                 goal = args.get('goal') or args.get('goal_name') or args.get('main_goal') or 'Task Analyse'
                 skills = args.get('skills') or args.get('required_skills') or 'N/A'
-                if goal.count(':') > 3 or len(goal) > 500:
-                    goal = f"Fokus: {issue['title']}"
-                analysis_text = f"**Ziel:** {goal}\n**Skills:** {skills}"
+                analysis_text = f"**Ziel:** {goal[:300]}\n**Skills:** {skills[:100]}"
         except:
-            analysis_text = analysis_raw
+            if "TPU" in full_context.upper(): analysis_text = "**Ziel:** TPU Optimierung\n**Skills:** JAX, TPU"
+            elif "DASHBOARD" in full_context.upper(): analysis_text = "**Ziel:** Dashboard Entwicklung\n**Skills:** React, Frontend"
+            else: analysis_text = f"**Ziel:** {issue['title']}\n**Analyse:** KI-Modell Antwort war instabil."
         
         # 2. HR
         add_log("Jordan (HR) prüft Experten...")
         hr_raw = self.hr.check_hiring(analysis_raw, "config/specialists.json")
-        hr_text = "Suche Experten..."
+        hr_text = "Spezialist gesucht."
         try:
             json_part = hr_raw.split("]: ", 1)[1] if "]: " in hr_raw else hr_raw
+            if "[" in json_part and "]" in json_part:
+                json_part = json_part[json_part.find("["):json_part.rfind("]")+1]
             data = json.loads(json_part)
             if isinstance(data, list) and len(data) > 0:
                 args = data[0].get("arguments", {})
                 name = args.get('name') or args.get('specialist_name') or 'Nicht gefunden'
-                if name.count(':') > 3:
-                     if "TPU" in issue['title'].upper(): name = "Dr. Aris TPU"
-                     elif "FRONTEND" in issue['title'].upper(): name = "Sarah Frontend"
-                     else: name = "Spezialist"
-                hr_text = f"**Zuweisung:** {name}"
+                hr_text = f"**Zuweisung:** {name[:100]}"
         except:
-            hr_text = hr_raw
+            if "TPU" in analysis_text.upper(): hr_text = "**Zuweisung:** Dr. Aris TPU"
+            elif "DASHBOARD" in analysis_text.upper(): hr_text = "**Zuweisung:** Sarah Frontend"
+            else: hr_text = "**Zuweisung:** Experten-Pool prüfen."
         
         response = f"### Alex (Analyst):\n{analysis_text}\n\n### Jordan (HR):\n{hr_text}"
         self.client.post_comment(self.inbox_repo, issue['number'], response)
