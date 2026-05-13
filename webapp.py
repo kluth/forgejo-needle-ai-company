@@ -75,6 +75,8 @@ class OnlineOrchestrator(threading.Thread):
             return True
         last_comment = comments[-1]
         body = last_comment['body'].strip()
+        if "MOCK" in body:
+            return True
         return not body.startswith("###")
 
     def process_task(self, issue):
