@@ -27,15 +27,17 @@ class NeedleAgent:
                 self.model = SimpleAttentionNetwork(self.config)
                 self.tokenizer = get_tokenizer()
 
-    def query(self, context, tools=None):
-        full_prompt = self.prompt_template.format(context=context)
+    def query(self, context, **kwargs):
+        try:
+            full_prompt = self.prompt_template.format(context=context, **kwargs)
+        except KeyError as e:
+            # Fallback if templates differ
+            full_prompt = f"System Error: Missing key {e} in template. Context: {context}"
         
         if HAS_NEEDLE and self.model:
-            # Hier würde die tatsächliche Generierung stattfinden
-            # return generate(self.model, self.params, self.tokenizer, query=full_prompt, tools=tools)
-            return f"[Needle {self.role}]: (Simulierte Antwort basierend auf Needle Logik) Die Analyse von '{context[:30]}...' ist abgeschlossen."
+            return f"[Needle {self.role}]: (Simulierte Antwort) Die Analyse ist abgeschlossen."
         else:
-            return f"[MOCK {self.role}]: Da keine Needle-Weights unter {os.getenv('NEEDLE_CHECKPOINT_PATH')} gefunden wurden, antworte ich im Simulationsmodus."
+            return f"[MOCK {self.role}]: {context[:100]}..."
 
 class BusinessAnalyst(NeedleAgent):
     def __init__(self):
@@ -72,5 +74,4 @@ class HRManager(NeedleAgent):
         except FileNotFoundError:
             specialists = "{}"
             
-        full_context = f"Spezialisten: {specialists}\nAnalyse: {analysis}"
-        return self.query(full_context)
+        return self.query(context=analysis, specialists=specialists)
