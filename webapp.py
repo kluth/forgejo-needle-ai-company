@@ -25,7 +25,7 @@ def add_log(msg):
     logs.append(f"[{timestamp}] {msg}")
     if len(logs) > 100:
         logs.pop(0)
-    print(msg)
+    print(msg, flush=True)
 
 class OnlineOrchestrator(threading.Thread):
     def __init__(self):
@@ -48,16 +48,20 @@ class OnlineOrchestrator(threading.Thread):
         while self.running:
             try:
                 # Update Status
+                add_log("Status-Update...")
                 repos = self.client.get_org_repos(self.org)
                 status["repos"] = len(repos)
                 
                 # Check Inbox
+                add_log(f"Prüfe Inbox {self.inbox_repo}...")
                 issues = self.client.get_issues(self.inbox_repo)
                 open_issues = [i for i in issues if i['state'] == 'open']
+                add_log(f"{len(open_issues)} offene Issues gefunden.")
                 for issue in open_issues:
                     if self.needs_response(issue):
                         self.process_task(issue)
                 
+                add_log("Warte 10s...")
                 time.sleep(10)
             except Exception as e:
                 add_log(f"Fehler: {e}")

@@ -62,6 +62,7 @@ class NeedleAgent:
                 # Use provided tools or empty list
                 tools_json = json.dumps(tools) if tools else "[]"
                 # Actual generation using Needle
+                print(f"Generating for {self.role}...", flush=True)
                 result = generate(self.model, self.params, self.tokenizer, query=full_prompt, tools=tools_json, stream=False, constrained=True)
                 return f"[Needle {self.role}]: {result}"
             except Exception as e:

@@ -13,21 +13,21 @@ class NeedleOrchestrator:
         try:
             self.user_info = self.client.get_current_user()
             self.ai_user_id = self.user_info['id']
-            print(f"Eingeloggt als: {self.user_info['login']} (ID: {self.ai_user_id})")
+            print(f"Eingeloggt als: {self.user_info['login']} (ID: {self.ai_user_id})", flush=True)
         except:
             self.ai_user_id = None
         
     def run(self):
-        print(f"Orchestrator gestartet. Überwache {self.inbox_repo}...")
+        print(f"Orchestrator gestartet. Überwache {self.inbox_repo}...", flush=True)
         while True:
             try:
                 # Debug: Zeige was wir tun
-                print(f"Polling {self.inbox_repo}...")
+                print(f"Polling {self.inbox_repo}...", flush=True)
                 issues = self.client.get_issues(self.inbox_repo)
-                print(f"Erhalten: {len(issues)} Issues insgesamt.")
+                print(f"Erhalten: {len(issues)} Issues insgesamt.", flush=True)
                 open_issues = [i for i in issues if i['state'] == 'open']
                 if open_issues:
-                    print(f"Scanne {len(open_issues)} offene Issues...")
+                    print(f"Scanne {len(open_issues)} offene Issues...", flush=True)
                 
                 for issue in open_issues:
                     if self.needs_response(issue):
@@ -35,7 +35,7 @@ class NeedleOrchestrator:
                 
                 time.sleep(10) # Poll alle 10 Sekunden für schnelles Feedback
             except Exception as e:
-                print(f"Fehler beim Polling: {e}")
+                print(f"Fehler beim Polling: {e}", flush=True)
                 time.sleep(10)
 
     def needs_response(self, issue):
