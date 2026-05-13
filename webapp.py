@@ -35,8 +35,8 @@ class OnlineOrchestrator(threading.Thread):
         self.inbox_repo = f"{self.org}/inbox"
         self.running = True
         self.daemon = True
-        self.analyst = BusinessAnalyst()
-        self.hr = HRManager()
+        self.analyst = None
+        self.hr = None
         try:
             self.user_info = self.client.get_current_user()
             self.ai_user_id = self.user_info['id']
@@ -45,8 +45,20 @@ class OnlineOrchestrator(threading.Thread):
 
     def run(self):
         add_log(f"Orchestrator gestartet. Überwache {self.inbox_repo}...")
+        
+        # Initialisiere Agenten im Thread
+        add_log("Lade KI-Modelle (Needle)...")
+        try:
+            self.analyst = BusinessAnalyst()
+            self.hr = HRManager()
+            add_log("KI-Modelle erfolgreich geladen.")
+        except Exception as e:
+            add_log(f"Fehler beim Laden der Modelle: {e}")
+            return
+
         while self.running:
             try:
+                add_log("--- Start Scan-Zyklus ---")
                 # Update Status
                 add_log("Status-Update...")
                 repos = self.client.get_org_repos(self.org)
@@ -57,11 +69,13 @@ class OnlineOrchestrator(threading.Thread):
                 issues = self.client.get_issues(self.inbox_repo)
                 open_issues = [i for i in issues if i['state'] == 'open']
                 add_log(f"{len(open_issues)} offene Issues gefunden.")
+                
                 for issue in open_issues:
                     if self.needs_response(issue):
+                        add_log(f"Verarbeite Issue #{issue['number']}...")
                         self.process_task(issue)
                 
-                add_log("Warte 10s...")
+                add_log("Scan-Zyklus beendet. Warte 10s...")
                 time.sleep(10)
             except Exception as e:
                 add_log(f"Fehler: {e}")
