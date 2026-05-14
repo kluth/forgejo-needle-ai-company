@@ -371,7 +371,7 @@ class ConstrainedDecoder:
 
         node = trie.get_node(machine.constrained_buf)
         if node is None:
-            logger.warning("Constrained decoding: off-trie at %r, falling back", machine.constrained_buf)
+            # logger.warning("Constrained decoding: off-trie at %r, falling back", machine.constrained_buf)
             return logits
 
         return apply_constraints(logits, machine.state, node, self.token_strings, self.token_index)

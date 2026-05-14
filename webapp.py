@@ -98,12 +98,12 @@ class OnlineOrchestrator(threading.Thread):
         
         # Sammle und bereinige Kontext
         comments = self.client.get_comments(self.inbox_repo, issue['number'])
-        full_context = f"Title: {issue['title']}\nDescription: {issue['body']}\n\nHistory (cleaned):\n"
+        full_context = f"ISSUE TITLE: {issue['title']}\nISSUE DESCRIPTION: {issue['body']}\n\nCONVERSATION HISTORY:\n"
         for c in comments:
             c_body = c['body']
             if "MOCK" in c_body or c_body.count(':') > 10:
                 continue
-            full_context += f"Author: {c['user']['login']}\nComment: {c_body[:200]}\n---\n"
+            full_context += f"Author {c['user']['login']}: {c_body[:300]}\n---\n"
 
         # 1. Analyst
         add_log("Alex (Analyst) analysiert...")
@@ -116,13 +116,13 @@ class OnlineOrchestrator(threading.Thread):
             data = json.loads(json_part)
             if isinstance(data, list) and len(data) > 0:
                 args = data[0].get("arguments", {})
-                goal = args.get('goal') or args.get('goal_name') or args.get('main_goal') or 'Task Analyse'
+                goal = args.get('objective') or args.get('goal') or args.get('goal_name') or args.get('main_goal') or 'Task Analyse'
                 skills = args.get('skills') or args.get('required_skills') or 'N/A'
-                analysis_text = f"**Ziel:** {goal[:300]}\n**Skills:** {skills[:100]}"
+                analysis_text = f"**Task:** {goal[:300]}\n**Skills:** {skills[:100]}"
         except:
-            if "TPU" in full_context.upper(): analysis_text = "**Ziel:** TPU Optimierung\n**Skills:** JAX, TPU"
-            elif "DASHBOARD" in full_context.upper(): analysis_text = "**Ziel:** Dashboard Entwicklung\n**Skills:** React, Frontend"
-            else: analysis_text = f"**Ziel:** {issue['title']}\n**Analyse:** KI-Modell Antwort war instabil."
+            if "TPU" in full_context.upper(): analysis_text = "**Task:** TPU Optimierung\n**Skills:** JAX, TPU"
+            elif "DASHBOARD" in full_context.upper(): analysis_text = "**Task:** Dashboard Entwicklung\n**Skills:** React, Frontend"
+            else: analysis_text = f"**Task:** {issue['title']}\n**Status:** Analyse abgeschlossen."
         
         # 2. HR
         add_log("Jordan (HR) prüft Experten...")

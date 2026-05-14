@@ -72,13 +72,13 @@ class NeedleAgent:
 
 class BusinessAnalyst(NeedleAgent):
     def __init__(self):
-        template = "Analyze this software issue: {context}"
+        template = "Task Extraction Request. Extract the main objective and required skills from the following context (Title, Description, and History):\n{context}"
         super().__init__("Business Analyst", template)
         self.tools = [
             {
                 "name": "submit_analysis",
                 "parameters": {
-                    "goal": "string",
+                    "objective": "string",
                     "skills": "string"
                 }
             }
@@ -89,14 +89,14 @@ class BusinessAnalyst(NeedleAgent):
         if "[]" in res:
             # Smart Fallback
             if "TPU" in context.upper():
-                return '[{"name": "submit_analysis", "arguments": {"goal": "TPU Optimization", "skills": "JAX, XLA, TPU"}}]'
+                return '[{"name": "submit_analysis", "arguments": {"objective": "TPU Optimization", "skills": "JAX, XLA, TPU"}}]'
             if "DASHBOARD" in context.upper() or "FRONTEND" in context.upper():
-                return '[{"name": "submit_analysis", "arguments": {"goal": "Frontend Dashboard", "skills": "React, D3.js"}}]'
+                return '[{"name": "submit_analysis", "arguments": {"objective": "Frontend Dashboard", "skills": "React, D3.js"}}]'
         return res
 
 class HRManager(NeedleAgent):
     def __init__(self):
-        template = "Match a specialist from: {specialists}. For this task: {context}"
+        template = "Specialist Matching Request. Match one name from the list below to the analyzed objective.\nSpecialists: {specialists}\nObjective: {context}"
         super().__init__("HR Manager", template)
         self.tools = [
             {
